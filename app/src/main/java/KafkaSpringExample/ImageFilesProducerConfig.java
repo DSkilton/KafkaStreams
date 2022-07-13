@@ -33,6 +33,5 @@ public class ImageFilesProducerConfig {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         
         return props;
-       
     }
 }

@@ -14,6 +14,7 @@ plugins {
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
@@ -23,7 +24,7 @@ dependencies {
     // This dependency is used by the application.
     implementation 'com.google.guava:guava:30.1.1-jre'
 
-        implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter'
     implementation group: 'org.springframework.kafka', name: 'spring-kafka', version: '2.4.5.RELEASE'
     implementation group: 'org.springframework.cloud', name: 'spring-cloud-stream', version: '3.0.3.RELEASE'
     implementation group: 'org.springframework.cloud', name: 'spring-cloud-stream-binder-kafka', version: '3.0.3.RELEASE'
@@ -31,14 +32,16 @@ dependencies {
     implementation  'org.apache.kafka:kafka-streams'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     
- 
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
+    testCompileOnly 'junit:junit:4.13'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
 
-    testImplementation('org.springframework.boot:spring-boot-starter-test') {
-        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    test {
+	useJUnit()
+	
+        testImplementation 'org.springframework.kafka:spring-kafka-test'
     }
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
 }
-
 
 application {
     // Define the main class for the application.
