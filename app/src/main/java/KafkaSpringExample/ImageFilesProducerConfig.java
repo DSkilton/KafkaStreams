@@ -12,6 +12,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.ProducerFactory;
 
 /**
  *
@@ -25,7 +27,7 @@ public class ImageFilesProducerConfig {
     private String bootstrapServers;
     
     @Bean
-    public Map<String, Object> producerConfig(){
+    public Map<String, Object> producerConfigs(){
         Map<String, Object> props = new HashMap<>();
         
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -34,4 +36,13 @@ public class ImageFilesProducerConfig {
         
         return props;
     }
+    
+    @Bean
+    public ProducerFactory<String, ImageFile> producerFactory(){
+        return new DefaultKafkaProducerFactory<>(producerConfigs());
+
+        
+        
+    }
+    
 }
