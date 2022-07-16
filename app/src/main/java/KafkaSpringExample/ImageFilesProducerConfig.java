@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 
 /**
@@ -39,10 +40,12 @@ public class ImageFilesProducerConfig {
     
     @Bean
     public ProducerFactory<String, ImageFile> producerFactory(){
-        return new DefaultKafkaProducerFactory<>(producerConfigs());
-
-        
-        
+        return new DefaultKafkaProducerFactory<>(producerConfigs());        
+    }
+    
+    @Bean
+    public KafkaTemplate<String, ImageFile> kafkaTemplate(){
+        return new KafkaTemplate<>(producerFactory());
     }
     
 }
