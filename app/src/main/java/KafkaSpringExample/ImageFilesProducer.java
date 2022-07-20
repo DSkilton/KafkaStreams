@@ -1,14 +1,13 @@
 package KafkaSpringExample;
 
 import java.io.IOException;
-import java.lang.System.Logger;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.UUID;
-import org.jboss.logging.Message;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -69,7 +68,7 @@ public class ImageFilesProducer {
 
         private void sendMessage(ImageFile imageFile) {
             long startTime = System.currentTimeMillis();
-            Message<ImageFile> message = MessageBuilder
+            var message = MessageBuilder
                     .withPayload(imageFile)
                     .setHeader(KafkaHeaders.TOPIC, topic)
                     .setHeader(KafkaHeaders.MESSAGE_KEY, UUID.randomUUID().toString())
@@ -81,15 +80,26 @@ public class ImageFilesProducer {
     
     static class ProducerCallBack implements ListenableFutureCallback<SendResult<String, ImageFile>>{
 
-        @Override
-        public void onSuccess(SendResult<String, ImageFile> t) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        private final ImageFile imageFile;
+        private final long startTime;
+        
+        private ProducerCallBack(long startTime, ImageFile imageFile) {
+            this.imageFile = imageFile;
+            this.startTime = startTime;
         }
 
         @Override
-        public void onFailure(Throwable thrwbl) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        public void onFailure(Throwable e) {
+            logger.error("Fail producing image: ", e);
         }
+        
+        @Override
+        public void onSuccess(SendResult<String, ImageFile> t) {
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            logger.info("Message {} sent in {} ms", imageFile, elapsedTime);
+        }
+
+        
         
     }
 }
