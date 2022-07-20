@@ -21,6 +21,7 @@ import org.springframework.util.concurrent.ListenableFutureCallback;
 /**
  *
  * @author MC03353
+ * This class and the nested class read the images and publish a message for each file 
  */
 @Component
 public class ImageFilesProducer {
