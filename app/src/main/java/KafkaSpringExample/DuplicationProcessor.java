@@ -4,6 +4,10 @@
  */
 package KafkaSpringExample;
 
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.annotation.EnableKafkaStreams;
+
 /**
  *
  * @author MC03353
@@ -13,6 +17,11 @@ package KafkaSpringExample;
  * size to output1. Each record on output1 is of the form of key: size as long, value: a 
  * string of concatenated files (e.g. “file1|file2”).
  */
-public class DuplicationProcessor extends  {
+@Configuration
+@EnableKafka
+@EnableKafkaStreams
+public class DuplicationProcessor {
+    
+    
     
 }
