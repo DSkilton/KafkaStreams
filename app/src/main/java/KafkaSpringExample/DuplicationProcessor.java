@@ -49,6 +49,9 @@ public class DuplicationProcessor extends BaseProcessor {
     @Value("$spring.cloud.stream.bindings.input1.destination}")
     private String input1;
     
+    @Value("$spring.cloud.stream.bindings.input2.destination}")
+    private String input2;
+    
     @Value("$spring.cloud.stream.bindings.output1.destination")
     private String output1;
 
@@ -97,5 +100,11 @@ public class DuplicationProcessor extends BaseProcessor {
         ;
         return imageFileStream;
     }
-
+    
+    public KStream<Long, String> removeDuplicateImages(StreamsBuilder streamsBuilder){
+        KStream<Long, String> stream = streamsBuilder.stream(input2, Consumed.with(Serdes.Long(),Serdes.String()));
+        
+        
+        return stream;
+    }
 }
