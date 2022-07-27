@@ -43,6 +43,7 @@ import org.springframework.kafka.support.serializer.JsonSerde;
 @EnableKafka
 @EnableKafkaStreams
 public class DuplicationProcessor extends BaseProcessor {
+    
 
     static Logger logger = LoggerFactory.getLogger(DuplicationProcessor.class);
 
@@ -104,7 +105,14 @@ public class DuplicationProcessor extends BaseProcessor {
     public KStream<Long, String> removeDuplicateImages(StreamsBuilder streamsBuilder){
         KStream<Long, String> stream = streamsBuilder.stream(input2, Consumed.with(Serdes.Long(),Serdes.String()));
         
-        
+        stream.map((key, identical_files) -> {
+            Set<String> classes = new HashSet<>();
+            Set<String> files = new HashSet<>(Arrays.asList(identical_files.split("\\|")));
+            
+            
+            
+            return new KeyValue<Integer, Integer>(0, files.size());
+        });
         return stream;
     }
 }
