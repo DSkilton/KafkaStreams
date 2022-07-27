@@ -8,18 +8,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.Grouped;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.kstream.UnlimitedWindows;
+import org.apache.kafka.streams.*;
+import org.apache.kafka.streams.kstream.*;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -29,6 +21,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.support.serializer.JsonSerde;
+
+
 
 /**
  *
@@ -43,16 +37,15 @@ import org.springframework.kafka.support.serializer.JsonSerde;
 @EnableKafka
 @EnableKafkaStreams
 public class DuplicationProcessor extends BaseProcessor {
-    
 
     static Logger logger = LoggerFactory.getLogger(DuplicationProcessor.class);
 
     @Value("$spring.cloud.stream.bindings.input1.destination}")
     private String input1;
-    
+
     @Value("$spring.cloud.stream.bindings.input2.destination}")
     private String input2;
-    
+
     @Value("$spring.cloud.stream.bindings.output1.destination")
     private String output1;
 
@@ -93,7 +86,7 @@ public class DuplicationProcessor extends BaseProcessor {
                     } catch (IOException e) {
                         return null;
                     }
-                }, Materialized.with(Serdes.Long(),Serdes.String()))
+                }, Materialized.with(Serdes.Long(), Serdes.String()))
                 .toStream()
                 .filter((key, value) -> Strings.isNotEmpty(value) && value.contains("|"))
                 .map((key, value) -> new KeyValue<>(key.key(), value))
@@ -101,16 +94,28 @@ public class DuplicationProcessor extends BaseProcessor {
         ;
         return imageFileStream;
     }
-    
-    public KStream<Long, String> removeDuplicateImages(StreamsBuilder streamsBuilder){
-        KStream<Long, String> stream = streamsBuilder.stream(input2, Consumed.with(Serdes.Long(),Serdes.String()));
-        
+
+    public KStream<Long, String> removeDuplicateImages(StreamsBuilder streamsBuilder) {
+        KStream<Long, String> stream = streamsBuilder.stream(input2, Consumed.with(Serdes.Long(), Serdes.String()));
+
         stream.map((key, identical_files) -> {
             Set<String> classes = new HashSet<>();
             Set<String> files = new HashSet<>(Arrays.asList(identical_files.split("\\|")));
+
+            for (String fileName : files) {
+                classes.add(DatasetUtils.getClassName(fileName));
+            }
             
-            
-            
+            if(classes.size() == 1){
+                logger.info("Mark for delete [{}] same class files", files.size()-1);
+                files.remove(files.iterator().next());
+            } else if (classes.size() > 1) {
+                logger.info("Mark for delete all [{}] classes files", files.size());
+            } else {
+                logger.info("No class marked for deletion");
+                return new KeyValue<Integer,Integer>(0,0);
+            }
+
             return new KeyValue<Integer, Integer>(0, files.size());
         });
         return stream;

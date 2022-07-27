@@ -31,14 +31,14 @@ dependencies {
     implementation group: 'org.springframework.cloud', name: 'spring-cloud-stream-binder-kafka-streams', version: '3.0.3.RELEASE'
     implementation  'org.apache.kafka:kafka-streams'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
-
+    
     compileOnly 'org.projectlombok:lombok:1.18.24'
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     testCompileOnly 'org.projectlombok:lombok:1.18.24'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
 
-    
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
     testCompileOnly 'junit:junit:4.13'
     testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
