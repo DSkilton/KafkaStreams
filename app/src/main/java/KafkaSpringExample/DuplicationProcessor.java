@@ -9,9 +9,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.processor.AbstractProcessor;
+import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -20,9 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.kafka.support.serializer.JsonSerde;
-
-
+import org.springframework.util.concurrent.ListenableFutureCallback;
 
 /**
  *
@@ -40,6 +47,9 @@ public class DuplicationProcessor extends BaseProcessor {
 
     static Logger logger = LoggerFactory.getLogger(DuplicationProcessor.class);
 
+    @Value("${duplicationProcessor.sendMessageDelay}")
+    public int sendMessageDelay;
+
     @Value("$spring.cloud.stream.bindings.input1.destination}")
     private String input1;
 
@@ -48,6 +58,9 @@ public class DuplicationProcessor extends BaseProcessor {
 
     @Value("$spring.cloud.stream.bindings.output1.destination")
     private String output1;
+
+    @Value("$spring.cloud.stream.bindings.output1.destination")
+    private String output2;
 
     @Bean
     public KStream<String, ImageFile> detectDuplicateImages(StreamsBuilder streamsBuilder) {
@@ -105,19 +118,67 @@ public class DuplicationProcessor extends BaseProcessor {
             for (String fileName : files) {
                 classes.add(DatasetUtils.getClassName(fileName));
             }
-            
-            if(classes.size() == 1){
-                logger.info("Mark for delete [{}] same class files", files.size()-1);
+
+            if (classes.size() == 1) {
+                logger.info("Mark for delete [{}] same class files", files.size() - 1);
                 files.remove(files.iterator().next());
             } else if (classes.size() > 1) {
                 logger.info("Mark for delete all [{}] classes files", files.size());
             } else {
                 logger.info("No class marked for deletion");
-                return new KeyValue<Integer,Integer>(0,0);
+                return new KeyValue<Integer, Integer>(0, 0);
             }
 
             return new KeyValue<Integer, Integer>(0, files.size());
+        })
+                .groupByKey(Grouped.<Integer, Integer>as("g3").withKeySerde(Serdes.Integer()))
+                .reduce(Integer::sum, Materialized.with(Serdes.Integer(), Serdes.Integer()))
+                .toStream()
+                .peek((key, value) -> logger.info("[{}] files deleted so far", value))
+                .process(() -> new AbstractProcessor<Integer, Integer>() {
+            private final AtomicInteger key = new AtomicInteger(0);
+            private final AtomicInteger value = new AtomicInteger(0);
+            private final ScheduledExecutorService scheduler = Executors
+                    .newScheduledThreadPool(1);
+            private KafkaTemplate<Integer, Integer> producer;
+
+            @Override
+            public void init(ProcessorContext context) {
+                super.init(context);
+                producer = producerTemplate();
+                scheduler.schedule(() -> {
+                    logger.info("sending [{}] files deleted message", value.get());
+                    producer.send(output2, key.get(), value.get()).addCallback(new ListenableFutureCallback<SendResult<Integer, Integer>>() {
+                        @Override
+                        public void onFailure(Throwable ex) {
+                            logger.error("Failed to send message", ex);
+                        }
+
+                        @Override
+                        public void onSuccess(SendResult<Integer, Integer> result) {
+                            logger.info("Message sent successfully {}", result);
+                        }
+                    });
+                    producer.flush();
+                    scheduler.shutdown();
+                    this.close();
+                }, sendMessageDelay, TimeUnit.SECONDS);
+            }
+
+            @Override
+            public void process(Integer key, Integer value) {
+                this.key.set(key);
+                this.value.set(value);
+            }
+            
+            @Override
+            public void close(){
+                super.close();
+                logger.info("Closing processor");
+            }
         });
         return stream;
     }
+    
+    
 }
